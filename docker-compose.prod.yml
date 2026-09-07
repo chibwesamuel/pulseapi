@@ -1,0 +1,129 @@
+services:
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+
+    container_name: csmbaseapi-api-prod
+
+    restart: unless-stopped
+
+    ports:
+      - "8001:8000"
+
+    environment:
+      APP_NAME: ${APP_NAME}
+      APP_VERSION: ${APP_VERSION}
+      ENVIRONMENT: ${ENVIRONMENT}
+      DEBUG: ${DEBUG}
+
+      HOST: ${HOST}
+      PORT: ${PORT}
+
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      ALEMBIC_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+
+      REDIS_URL: redis://redis:6379/0
+
+      SECRET_KEY: ${SECRET_KEY}
+      ALGORITHM: ${ALGORITHM}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS}
+      PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: ${PASSWORD_RESET_TOKEN_EXPIRE_MINUTES}
+      EMAIL_VERIFICATION_TOKEN_EXPIRE_MINUTES: ${EMAIL_VERIFICATION_TOKEN_EXPIRE_MINUTES}
+
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME}
+      SMTP_USE_TLS: ${SMTP_USE_TLS}
+
+      PASSWORD_RESET_URL: ${PASSWORD_RESET_URL}
+      EMAIL_VERIFICATION_URL: ${EMAIL_VERIFICATION_URL}
+
+      CORS_ORIGINS: ${CORS_ORIGINS}
+
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+    networks:
+      - csmbaseapi-network
+
+
+  db:
+    image: postgres:16
+
+    container_name: csmbaseapi-postgres-prod
+
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+
+    networks:
+      - csmbaseapi-network
+
+
+  redis:
+    image: redis:7-alpine
+
+    container_name: csmbaseapi-redis-prod
+
+    restart: unless-stopped
+
+    volumes:
+      - redis_data_prod:/data
+
+    command: redis-server --appendonly yes
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+    networks:
+      - csmbaseapi-network
+
+
+volumes:
+  postgres_data_prod:
+  redis_data_prod:
+
+
+networks:
+  csmbaseapi-network:
+    external: true
