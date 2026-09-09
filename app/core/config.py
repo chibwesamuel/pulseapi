@@ -48,6 +48,11 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: str = "*"
 
+    # Storage
+    STORAGE_BACKEND: str = "local"
+    STORAGE_LOCAL_PATH: str = "./uploads"
+    MAX_ATTACHMENT_SIZE: int = 10 * 1024 * 1024
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

@@ -3,7 +3,9 @@ from uuid import UUID
 from fastapi import (
     APIRouter,
     Depends,
+    File,
     HTTPException,
+    UploadFile,
     status,
 )
 
@@ -23,7 +25,6 @@ from app.models.task import Task
 from app.models.user import User
 
 from app.schemas.task_attachment import (
-    TaskAttachmentCreate,
     TaskAttachmentResponse,
     PaginatedTaskAttachmentsResponse,
 )
@@ -33,7 +34,9 @@ from app.services.task_attachment import (
     get_task_attachments,
     get_single_attachment,
     remove_attachment,
+    get_attachment_file,
 )
+from fastapi.responses import StreamingResponse
 
 
 router = APIRouter(
@@ -56,7 +59,7 @@ def create_task_attachment(
     organization_id: UUID,
     project_id: UUID,
     task_id: UUID,
-    data: TaskAttachmentCreate,
+    file: UploadFile = File(...),
     db: Session = Depends(get_db),
     task: Task = Depends(get_current_task),
     current_user: User = Depends(
@@ -66,23 +69,18 @@ def create_task_attachment(
     ),
 ):
     """
-    Create a task attachment.
-
-    The current task dependency ensures that:
-    - the organization exists,
-    - the current user belongs to the organization,
-    - the project exists,
-    - the project belongs to the organization,
-    - the task exists,
-    - the task belongs to the project.
+    Upload a file and attach it to the current task.
     """
 
     try:
         return create_new_attachment(
-            db,
-            task,
-            current_user.id,
-            data,
+            db=db,
+            task=task,
+            user_id=current_user.id,
+            organization_id=organization_id,
+            file_name=file.filename or "",
+            file=file.file,
+            file_type=file.content_type,
         )
 
     except ValueError as error:
@@ -222,3 +220,49 @@ def delete_attachment(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(error),
         )
+
+@router.get(
+    "/{attachment_id}/download",
+)
+def download_task_attachment(
+    organization_id: UUID,
+    project_id: UUID,
+    task_id: UUID,
+    attachment_id: UUID,
+    db: Session = Depends(get_db),
+    task: Task = Depends(get_current_task),
+    current_user: User = Depends(
+        require_permission(
+            "projects.view"
+        )
+    ),
+):
+    """
+    Download a file attached to the current task.
+    """
+
+    try:
+        attachment, file = get_attachment_file(
+            db=db,
+            attachment_id=attachment_id,
+            task_id=task.id,
+        )
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error),
+        )
+
+    return StreamingResponse(
+        file,
+        media_type=(
+            attachment.file_type
+            or "application/octet-stream"
+        ),
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{attachment.file_name}"'
+            )
+        },
+    )
