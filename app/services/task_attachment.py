@@ -1,13 +1,12 @@
 from math import ceil
 from pathlib import Path
 from uuid import UUID, uuid4
-
+from io import BytesIO
+from zipfile import BadZipFile, ZipFile
 from sqlalchemy.orm import Session
-
 from app.core.config import settings
 from app.models.project_member import ProjectMember
 from app.models.task import Task
-
 from app.repositories.task_attachment import (
     create_attachment,
     get_attachment,
@@ -15,7 +14,82 @@ from app.repositories.task_attachment import (
     delete_attachment,
 )
 from app.storage.factory import get_storage
+from fastapi.responses import StreamingResponse
 
+
+def _validate_file_signature(
+    file,
+    file_type: str,
+) -> None:
+    """
+    Validate that the uploaded file content matches
+    the declared MIME type where a reliable signature
+    or container structure is available.
+    """
+
+    header = file.read(16)
+
+    if file_type == "application/pdf":
+        if not header.startswith(b"%PDF-"):
+            raise ValueError(
+                "File content does not match attachment type"
+            )
+
+    elif file_type == "image/png":
+        if header != (
+            b"\x89PNG\r\n\x1a\n"
+            + header[8:]
+        ):
+            raise ValueError(
+                "File content does not match attachment type"
+            )
+
+    elif file_type == "image/jpeg":
+        if not header.startswith(b"\xff\xd8\xff"):
+            raise ValueError(
+                "File content does not match attachment type"
+            )
+
+    elif file_type == "image/gif":
+        if header[:6] not in (
+            b"GIF87a",
+            b"GIF89a",
+        ):
+            raise ValueError(
+                "File content does not match attachment type"
+            )
+
+    elif file_type in {
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }:
+        file.seek(0)
+
+        try:
+            with ZipFile(file) as archive:
+                names = set(archive.namelist())
+
+                if "[Content_Types].xml" not in names:
+                    raise ValueError(
+                        "File content does not match attachment type"
+                    )
+
+                if file_type.endswith("wordprocessingml.document"):
+                    required = "word/document.xml"
+                else:
+                    required = "xl/workbook.xml"
+
+                if required not in names:
+                    raise ValueError(
+                        "File content does not match attachment type"
+                    )
+
+        except BadZipFile:
+            raise ValueError(
+                "File content does not match attachment type"
+            )
+
+    file.seek(0)
 
 def create_new_attachment(
     db: Session,
@@ -94,6 +168,11 @@ def create_new_attachment(
         raise ValueError(
             "File extension does not match attachment type"
         )
+
+    _validate_file_signature(
+        file,
+        file_type,
+    )
 
     storage_key = (
         f"organizations/"

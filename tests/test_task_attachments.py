@@ -106,7 +106,7 @@ def create_attachment(
     project_id,
     task_id,
 ):
-    content = b"Test attachment content"
+    content = b"%PDF-1.7\nTest attachment content"
 
     response = client.post(
         (
@@ -130,7 +130,6 @@ def create_attachment(
     attachment = response.json()
 
     return attachment, content
-
 
 def setup_task(
     client,
