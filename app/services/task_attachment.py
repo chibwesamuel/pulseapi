@@ -59,9 +59,41 @@ def create_new_attachment(
             "A valid file name is required"
         )
 
+    allowed_types = {
+        content_type.strip()
+        for content_type in settings.ALLOWED_ATTACHMENT_TYPES.split(",")
+        if content_type.strip()
+    }
+
+    if file_type not in allowed_types:
+        raise ValueError(
+            "Unsupported attachment type"
+        )
+
     extension = Path(
         original_name
     ).suffix.lower()
+
+    extension_map = {}
+
+    for item in settings.ALLOWED_ATTACHMENT_EXTENSIONS.split(","):
+        mime_type, extensions = item.split(":", 1)
+
+        extension_map[mime_type.strip()] = {
+            value.strip().lower()
+            for value in extensions.split("|")
+            if value.strip()
+        }
+
+    allowed_extensions = extension_map.get(
+        file_type,
+        set(),
+    )
+
+    if extension not in allowed_extensions:
+        raise ValueError(
+            "File extension does not match attachment type"
+        )
 
     storage_key = (
         f"organizations/"

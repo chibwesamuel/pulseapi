@@ -1,5 +1,8 @@
 from uuid import UUID
 
+import re
+import unicodedata
+from urllib.parse import quote
 from fastapi import (
     APIRouter,
     Depends,
@@ -38,6 +41,69 @@ from app.services.task_attachment import (
 )
 from fastapi.responses import StreamingResponse
 
+
+def build_content_disposition(filename: str) -> str:
+    """
+    Build a safe Content-Disposition header for a downloaded file.
+
+    The ASCII filename provides compatibility with older clients,
+    while filename* preserves the original UTF-8 filename.
+    """
+
+    # Remove path separators.
+    safe_filename = (
+        filename
+        .replace("\\", "_")
+        .replace("/", "_")
+    )
+
+    # Reject everything from the first HTTP control character onward.
+    control_character = next(
+        (
+            index
+            for index, character in enumerate(safe_filename)
+            if ord(character) < 32
+            or ord(character) == 127
+        ),
+        None,
+    )
+
+    if control_character is not None:
+        safe_filename = safe_filename[:control_character]
+
+    if not safe_filename:
+        safe_filename = "download"
+
+    # Create an ASCII fallback for clients that do not support
+    # RFC 5987 / RFC 6266 filename*.
+    ascii_filename = unicodedata.normalize(
+        "NFKD",
+        safe_filename,
+    ).encode(
+        "ascii",
+        "ignore",
+    ).decode(
+        "ascii",
+    )
+
+    ascii_filename = re.sub(
+        r"[^A-Za-z0-9._ -]",
+        "_",
+        ascii_filename,
+    ).strip()
+
+    if not ascii_filename:
+        ascii_filename = "download"
+
+    encoded_filename = quote(
+        safe_filename,
+        safe="",
+    )
+
+    return (
+        f'attachment; filename="{ascii_filename}"; '
+        f"filename*=UTF-8''{encoded_filename}"
+    )
 
 router = APIRouter(
     prefix=(
@@ -261,8 +327,8 @@ def download_task_attachment(
             or "application/octet-stream"
         ),
         headers={
-            "Content-Disposition": (
-                f'attachment; filename="{attachment.file_name}"'
+            "Content-Disposition": build_content_disposition(
+                attachment.file_name
             )
         },
     )
