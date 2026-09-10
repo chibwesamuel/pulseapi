@@ -47,6 +47,10 @@ def test_settings_defaults():
 
     assert settings.CORS_ORIGINS == "*"
 
+    assert settings.STORAGE_BACKEND == "local"
+    assert settings.STORAGE_LOCAL_PATH == "./uploads"
+    assert settings.MAX_ATTACHMENT_SIZE == 10 * 1024 * 1024
+
 
 def test_settings_accept_environment_configuration():
     settings = Settings(
@@ -74,6 +78,9 @@ def test_settings_accept_environment_configuration():
         PASSWORD_RESET_URL="https://example.com/reset",
         EMAIL_VERIFICATION_URL="https://example.com/verify",
         CORS_ORIGINS="https://example.com,https://admin.example.com",
+        STORAGE_BACKEND="local",
+        STORAGE_LOCAL_PATH="/tmp/csmbaseapi/uploads",
+        MAX_ATTACHMENT_SIZE=5242880,
     )
 
     assert settings.APP_NAME == "TestAPI"
@@ -102,6 +109,9 @@ def test_settings_accept_environment_configuration():
     assert settings.CORS_ORIGINS == (
         "https://example.com,https://admin.example.com"
     )
+    assert settings.STORAGE_BACKEND == "local"
+    assert settings.STORAGE_LOCAL_PATH == "/tmp/csmbaseapi/uploads"
+    assert settings.MAX_ATTACHMENT_SIZE == 5242880
 
 
 def test_production_rejects_debug():

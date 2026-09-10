@@ -16,6 +16,8 @@ def create_attachment(
 ) -> TaskAttachment:
     """
     Create a task attachment.
+
+    The transaction is controlled by the service layer.
     """
 
     attachment = TaskAttachment(
@@ -28,8 +30,7 @@ def create_attachment(
     )
 
     db.add(attachment)
-    db.commit()
-    db.refresh(attachment)
+    db.flush()
 
     return attachment
 
@@ -89,9 +90,11 @@ def delete_attachment(
 ) -> TaskAttachment:
     """
     Delete an attachment.
+
+    The transaction is controlled by the service layer.
     """
 
     db.delete(attachment)
-    db.commit()
+    db.flush()
 
     return attachment

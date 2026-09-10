@@ -48,6 +48,34 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: str = "*"
 
+    # Storage
+    STORAGE_BACKEND: str = "local"
+    STORAGE_LOCAL_PATH: str = "./uploads"
+    MAX_ATTACHMENT_SIZE: int = 10 * 1024 * 1024
+
+    ALLOWED_ATTACHMENT_TYPES: str = (
+        "application/pdf,"
+        "image/png,"
+        "image/jpeg,"
+        "image/gif,"
+        "text/plain,"
+        "text/csv,"
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document,"
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+    ALLOWED_ATTACHMENT_EXTENSIONS: str = (
+        "application/pdf:.pdf,"
+        "image/png:.png,"
+        "image/jpeg:.jpg|.jpeg,"
+        "image/gif:.gif,"
+        "text/plain:.txt,"
+        "text/csv:.csv,"
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document:.docx,"
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:.xlsx"
+    )
+
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

@@ -11,7 +11,6 @@ from app.schemas.notification import (
 )
 
 from app.schemas.task_attachment import (
-    TaskAttachmentCreate,
     TaskAttachmentResponse,
     PaginatedTaskAttachmentsResponse,
 )
