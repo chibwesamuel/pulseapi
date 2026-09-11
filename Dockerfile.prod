@@ -20,7 +20,8 @@ COPY app ./app
 COPY alembic.ini .
 COPY alembic ./alembic
 
-RUN chown -R csmbaseapi:csmbaseapi /app
+RUN mkdir -p /app/uploads && \
+    chown -R csmbaseapi:csmbaseapi /app
 
 USER csmbaseapi
 

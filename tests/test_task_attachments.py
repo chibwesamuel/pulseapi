@@ -2,12 +2,12 @@ import uuid
 
 import pytest
 
-from app.storage.factory import get_storage
-from app.storage.local import LocalStorage
-from app.core.config import settings
 from app.api.v1.task_attachments import (
     build_content_disposition,
 )
+from app.core.config import settings
+from app.storage.factory import get_storage
+from app.storage.local import LocalStorage
 
 def assert_status(response, expected):
     if response.status_code != expected:
