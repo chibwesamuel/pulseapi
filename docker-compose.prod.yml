@@ -1,13 +1,19 @@
 services:
 
-    api:
+  api:
     build:
       context: .
       dockerfile: Dockerfile.prod
+
     container_name: csmbaseapi-api-prod
+
     restart: unless-stopped
+
     ports:
       - "8001:8000"
+
+    volumes:
+      - attachments_data_prod:/app/uploads
 
     read_only: true
 
@@ -89,7 +95,6 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 
-
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
@@ -130,6 +135,7 @@ services:
 volumes:
   postgres_data_prod:
   redis_data_prod:
+  attachments_data_prod:
 
 
 networks:

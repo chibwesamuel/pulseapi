@@ -1,8 +1,8 @@
-from uuid import UUID
-
 import re
 import unicodedata
 from urllib.parse import quote
+from uuid import UUID
+
 from fastapi import (
     APIRouter,
     Depends,
@@ -11,27 +11,22 @@ from fastapi import (
     UploadFile,
     status,
 )
-
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
-
 from app.dependencies.organization import (
     get_current_task,
 )
-
 from app.dependencies.permissions import (
     require_permission,
 )
-
 from app.models.task import Task
 from app.models.user import User
-
 from app.schemas.task_attachment import (
     TaskAttachmentResponse,
     PaginatedTaskAttachmentsResponse,
 )
-
 from app.services.task_attachment import (
     create_new_attachment,
     get_task_attachments,
@@ -39,8 +34,6 @@ from app.services.task_attachment import (
     remove_attachment,
     get_attachment_file,
 )
-from fastapi.responses import StreamingResponse
-
 
 def build_content_disposition(filename: str) -> str:
     """
